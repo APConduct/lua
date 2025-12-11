@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/LuaSatellTargets.cmake")
+
+check_required_components(LuaSatell)
+
+# Provide variables for compatibility
+set(LuaSatell_LIBRARIES LuaSatell::liblua)
+set(LuaSatell_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+set(LuaSatell_VERSION @PROJECT_VERSION@)
+set(LuaSatell_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(LuaSatell_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(LuaSatell_VERSION_PATCH @PROJECT_VERSION_PATCH@)
