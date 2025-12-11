@@ -22,6 +22,17 @@
 
 
 /*
+** Forward declaration for Satell C++ extensions
+*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+LUAMOD_API int luaopen_satell_cpp(lua_State *L);
+#ifdef __cplusplus
+}
+#endif
+
+/*
 ** Standard Libraries. (Must be listed in the same ORDER of their
 ** respective constants LUA_<libname>K.)
 */
@@ -36,6 +47,7 @@ static const luaL_Reg stdlibs[] = {
   {LUA_STRLIBNAME, luaopen_string},
   {LUA_TABLIBNAME, luaopen_table},
   {LUA_UTF8LIBNAME, luaopen_utf8},
+  {"satell_cpp", luaopen_satell_cpp},
   {NULL, NULL}
 };
 

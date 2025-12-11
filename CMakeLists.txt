@@ -1,37 +1,42 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(LuaSatell
+project(Satell
     VERSION 5.5.0
-    DESCRIPTION "Lua Satell - A Lua language superset"
-    LANGUAGES C
+    DESCRIPTION "Satell - A Lua language superset"
+    LANGUAGES C CXX
 )
 
-# Set C standard
+# Set C standard for Lua core
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+# Set C++ standard for Satell extensions
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Build options
-option(LUA_BUILD_COMPILER "Build the Lua compiler (luac)" ON)
-option(LUA_BUILD_SHARED "Build Lua as a shared library" OFF)
-option(LUA_USE_READLINE "Use readline library for interactive mode" ON)
-option(LUA_ENABLE_TESTS "Enable internal testing support" OFF)
+option(SATELL_BUILD_COMPILER "Build the Satell compiler" ON)
+option(SATELL_BUILD_SHARED "Build Satell as a shared library" OFF)
+option(SATELL_USE_READLINE "Use readline library for interactive mode" ON)
+option(SATELL_ENABLE_TESTS "Enable internal testing support" OFF)
 
 # Platform detection
 if(UNIX AND NOT APPLE)
-    set(LUA_USE_LINUX ON)
+    set(SATELL_USE_LINUX ON)
     set(PLATFORM_LIBS m dl)
 elseif(APPLE)
-    set(LUA_USE_MACOSX ON)
+    set(SATELL_USE_MACOSX ON)
     set(PLATFORM_LIBS m)
 elseif(WIN32)
-    set(LUA_USE_WINDOWS ON)
+    set(SATELL_USE_WINDOWS ON)
     set(PLATFORM_LIBS "")
 endif()
 
-# Compiler warnings
+# C Compiler warnings (for Lua core C files)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(
+    set(C_WARNINGS
         -Wall
         -Wextra
         -Wshadow
@@ -46,29 +51,46 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         -Wmissing-prototypes
         -Wnested-externs
         -Wstrict-prototypes
-        -Wc++-compat
         -Wold-style-definition
     )
 
     if(CMAKE_C_COMPILER_ID MATCHES "GNU")
-        add_compile_options(
+        list(APPEND C_WARNINGS
             -Wlogical-op
             -Wno-aggressive-loop-optimizations
         )
     endif()
 endif()
 
-# Define platform macros
-if(LUA_USE_LINUX)
-    add_compile_definitions(LUA_USE_LINUX)
-elseif(LUA_USE_MACOSX)
-    add_compile_definitions(LUA_USE_MACOSX)
-elseif(LUA_USE_WINDOWS)
-    add_compile_definitions(LUA_USE_WINDOWS)
+# C++ Compiler warnings (for Satell C++ extensions)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CXX_WARNINGS
+        -Wall
+        -Wextra
+        -Wshadow
+        -Wundef
+        -Wwrite-strings
+        -Wredundant-decls
+        -Wdisabled-optimization
+        -Wdouble-promotion
+        -Wconversion
+        -Wnon-virtual-dtor
+        -Woverloaded-virtual
+    )
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        list(APPEND CXX_WARNINGS
+            -Wlogical-op
+        )
+    endif()
 endif()
 
-# Core Lua library sources
-set(LUA_CORE_SRC
+# Define platform macros
+# Note: Don't use add_compile_definitions here because luaconf.h already defines these
+# We'll add them as target-specific compile definitions to avoid redefinition warnings
+
+# Core Satell library sources (Lua C code)
+set(SATELL_CORE_SRC
     src/lapi.c
     src/lcode.c
     src/lctype.c
@@ -92,12 +114,12 @@ set(LUA_CORE_SRC
 )
 
 # Auxiliary library sources
-set(LUA_AUX_SRC
+set(SATELL_AUX_SRC
     src/lauxlib.c
 )
 
 # Standard library sources
-set(LUA_LIB_SRC
+set(SATELL_LIB_SRC
     src/lbaselib.c
     src/ldblib.c
     src/liolib.c
@@ -111,45 +133,95 @@ set(LUA_LIB_SRC
     src/linit.c
 )
 
+# Satell C++ extensions (add your C++ files here)
+set(SATELL_CXX_SRC
+    # Example C++ extensions
+    src/satell_extensions.cpp
+    # Add more C++ extension files here
+)
+
 # Add tests support if enabled
-if(LUA_ENABLE_TESTS)
-    list(APPEND LUA_CORE_SRC src/ltests.c)
+if(SATELL_ENABLE_TESTS)
+    list(APPEND SATELL_CORE_SRC src/ltests.c)
     add_compile_definitions(LUA_USER_H="ltests.h")
 endif()
 
-# Create Lua library (static by default, shared if option enabled)
-if(LUA_BUILD_SHARED)
-    add_library(liblua SHARED ${LUA_CORE_SRC} ${LUA_AUX_SRC} ${LUA_LIB_SRC})
-    set_target_properties(liblua PROPERTIES
-        OUTPUT_NAME lua
+# Create Satell library (static by default, shared if option enabled)
+if(SATELL_BUILD_SHARED)
+    add_library(libsatell SHARED
+        ${SATELL_CORE_SRC}
+        ${SATELL_AUX_SRC}
+        ${SATELL_LIB_SRC}
+        ${SATELL_CXX_SRC}
+    )
+    set_target_properties(libsatell PROPERTIES
+        OUTPUT_NAME satell
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     )
 else()
-    add_library(liblua STATIC ${LUA_CORE_SRC} ${LUA_AUX_SRC} ${LUA_LIB_SRC})
-    set_target_properties(liblua PROPERTIES OUTPUT_NAME lua)
+    add_library(libsatell STATIC
+        ${SATELL_CORE_SRC}
+        ${SATELL_AUX_SRC}
+        ${SATELL_LIB_SRC}
+        ${SATELL_CXX_SRC}
+    )
+    set_target_properties(libsatell PROPERTIES OUTPUT_NAME satell)
+endif()
+
+# Apply C warnings to C source files
+set_source_files_properties(
+    ${SATELL_CORE_SRC}
+    ${SATELL_AUX_SRC}
+    ${SATELL_LIB_SRC}
+    PROPERTIES COMPILE_OPTIONS "${C_WARNINGS}"
+)
+
+# Apply C++ warnings to C++ source files
+if(SATELL_CXX_SRC)
+    set_source_files_properties(
+        ${SATELL_CXX_SRC}
+        PROPERTIES COMPILE_OPTIONS "${CXX_WARNINGS}"
+    )
 endif()
 
 # Set include directories for the library
-target_include_directories(liblua
+target_include_directories(libsatell
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
 )
 
 # Link platform libraries
-target_link_libraries(liblua PUBLIC ${PLATFORM_LIBS})
+target_link_libraries(libsatell PUBLIC ${PLATFORM_LIBS})
 
-# Lua interpreter executable
-add_executable(lua src/lua.c)
-target_link_libraries(lua PRIVATE liblua)
+# Define platform macros only if not already defined in luaconf.h
+# This avoids the redefinition warning
+if(SATELL_USE_LINUX)
+    target_compile_definitions(libsatell PRIVATE LUA_USE_LINUX)
+elseif(SATELL_USE_MACOSX)
+    target_compile_definitions(libsatell PRIVATE LUA_USE_MACOSX)
+elseif(SATELL_USE_WINDOWS)
+    # Windows is auto-detected in luaconf.h, so we don't need to define it
+    # target_compile_definitions(libsatell PRIVATE LUA_USE_WINDOWS)
+endif()
+
+# If we have C++ sources, we need to link C++ standard library
+if(SATELL_CXX_SRC)
+    target_link_libraries(libsatell PUBLIC ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
+endif()
+
+# Satell interpreter executable
+add_executable(satell src/lua.c)
+target_link_libraries(satell PRIVATE libsatell)
+set_source_files_properties(src/lua.c PROPERTIES COMPILE_OPTIONS "${C_WARNINGS}")
 
 # Add readline support if available and requested
-if(LUA_USE_READLINE AND UNIX)
+if(SATELL_USE_READLINE AND UNIX)
     find_library(READLINE_LIBRARY readline)
     if(READLINE_LIBRARY)
-        target_link_libraries(lua PRIVATE ${READLINE_LIBRARY})
-        target_compile_definitions(lua PRIVATE LUA_USE_READLINE)
+        target_link_libraries(satell PRIVATE ${READLINE_LIBRARY})
+        target_compile_definitions(satell PRIVATE LUA_USE_READLINE)
     endif()
 endif()
 
@@ -159,8 +231,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Installation rules
 include(GNUInstallDirs)
 
-install(TARGETS liblua lua
-    EXPORT LuaSatellTargets
+install(TARGETS libsatell satell
+    EXPORT SatellTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -176,44 +248,51 @@ install(FILES
 )
 
 # Export targets for use by other CMake projects
-install(EXPORT LuaSatellTargets
-    FILE LuaSatellTargets.cmake
-    NAMESPACE LuaSatell::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LuaSatell
+install(EXPORT SatellTargets
+    FILE SatellTargets.cmake
+    NAMESPACE Satell::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Satell
 )
 
 # Create config file for find_package support
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/LuaSatellConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/SatellConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/LuaSatellConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/LuaSatellConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LuaSatell
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SatellConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/SatellConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Satell
 )
 
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/LuaSatellConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/LuaSatellConfigVersion.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LuaSatell
+    "${CMAKE_CURRENT_BINARY_DIR}/SatellConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/SatellConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Satell
 )
 
 # Print configuration summary
 message(STATUS "")
-message(STATUS "Lua Satell Configuration Summary")
-message(STATUS "================================")
+message(STATUS "Satell Configuration Summary")
+message(STATUS "============================")
 message(STATUS "Version:              ${PROJECT_VERSION}")
 message(STATUS "Build type:           ${CMAKE_BUILD_TYPE}")
 message(STATUS "C Compiler:           ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "C++ Compiler:         ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "C++ Standard:         C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Install prefix:       ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "Build shared library: ${LUA_BUILD_SHARED}")
-message(STATUS "Enable tests:         ${LUA_ENABLE_TESTS}")
+message(STATUS "Build shared library: ${SATELL_BUILD_SHARED}")
+message(STATUS "Enable tests:         ${SATELL_ENABLE_TESTS}")
 if(UNIX)
-    message(STATUS "Use readline:         ${LUA_USE_READLINE}")
+    message(STATUS "Use readline:         ${SATELL_USE_READLINE}")
 endif()
 message(STATUS "Platform libraries:   ${PLATFORM_LIBS}")
+if(SATELL_CXX_SRC)
+    message(STATUS "C++ extensions:       ${SATELL_CXX_SRC}")
+else()
+    message(STATUS "C++ extensions:       (none yet)")
+endif()
 message(STATUS "")

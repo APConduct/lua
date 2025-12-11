@@ -12,7 +12,7 @@ testes/time-debug.txt
 testes/libs/all
 
 temp
-lua
+satell
 
 # CMake build artifacts
 build/

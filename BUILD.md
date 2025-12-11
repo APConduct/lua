@@ -1,6 +1,6 @@
-# Building Lua Satell
+# Building Satell
 
-This document describes how to build Lua Satell from source using CMake.
+This document describes how to build Satell from source using CMake.
 
 ## Prerequisites
 
@@ -44,8 +44,8 @@ cmake -G Ninja ..
 # Build
 ninja
 
-# Run Lua
-./lua
+# Run Satell
+./satell
 
 # (Optional) Install system-wide
 sudo cmake --install .
@@ -71,22 +71,22 @@ cmake ..
 REM Build
 cmake --build . --config Release
 
-REM Run Lua
-Release\lua.exe
+REM Run Satell
+Release\satell.exe
 
 REM (Optional) Install
-cmake --install . --prefix C:\LuaSatell
+cmake --install . --prefix C:\Satell
 ```
 
 ## Build Options
 
-Lua Satell provides several CMake options to customize the build:
+Satell provides several CMake options to customize the build:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `LUA_BUILD_SHARED` | OFF | Build Lua as a shared library instead of static |
-| `LUA_USE_READLINE` | ON | Enable readline support for interactive mode (Unix only) |
-| `LUA_ENABLE_TESTS` | OFF | Enable internal testing support (for development) |
+| `SATELL_BUILD_SHARED` | OFF | Build Satell as a shared library instead of static |
+| `SATELL_USE_READLINE` | ON | Enable readline support for interactive mode (Unix only) |
+| `SATELL_ENABLE_TESTS` | OFF | Enable internal testing support (for development) |
 
 ### Example: Building with Custom Options
 
@@ -94,8 +94,8 @@ Lua Satell provides several CMake options to customize the build:
 cmake -B build \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLUA_BUILD_SHARED=ON \
-    -DLUA_USE_READLINE=OFF
+    -DSATELL_BUILD_SHARED=ON \
+    -DSATELL_USE_READLINE=OFF
 
 ninja -C build
 ```
@@ -103,7 +103,7 @@ ninja -C build
 Or:
 
 ```bash
-./build.sh -s --prefix /opt/lua
+./build.sh -s --prefix /opt/satell
 ```
 
 ## Build Types
@@ -138,20 +138,20 @@ cmake --install build
 
 ### What Gets Installed
 
-- `bin/lua` - The Lua interpreter
-- `lib/liblua.a` (or `.so`/`.dll`) - The Lua library
+- `bin/satell` - The Satell interpreter
+- `lib/libsatell.a` (or `.so`/`.dll`) - The Satell library
 - `include/lua.h`, `luaconf.h`, `lualib.h`, `lauxlib.h` - Headers
-- `lib/cmake/LuaSatell/` - CMake package files
+- `lib/cmake/Satell/` - CMake package files
 
-## Using Lua Satell in Your CMake Project
+## Using Satell in Your CMake Project
 
-After installation, you can use Lua Satell in your own CMake projects:
+After installation, you can use Satell in your own CMake projects:
 
 ```cmake
-find_package(LuaSatell REQUIRED)
+find_package(Satell REQUIRED)
 
 add_executable(myapp main.c)
-target_link_libraries(myapp PRIVATE LuaSatell::liblua)
+target_link_libraries(myapp PRIVATE Satell::libsatell)
 ```
 
 ## Cross-Compilation
@@ -210,7 +210,7 @@ For development with internal tests enabled:
 cmake -B build \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DLUA_ENABLE_TESTS=ON
+    -DSATELL_ENABLE_TESTS=ON
 
 ninja -C build
 ```
